@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S&P 500 Fib Risk Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .input-label {
+            @apply block text-sm font-medium text-gray-400 mb-2;
+        }
+        .input-field {
+            @apply w-full border border-gray-600 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition;
+            background-color: #1F2937;
+            color: #F9FAFB;
+        }
+        select.input-field {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            padding-right: 2.5rem;
+        }
+        .btn-primary {
+            @apply w-full bg-indigo-600 text-white font-semibold p-3 rounded-lg border-2 border-indigo-400 flex items-center justify-center hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-indigo-500 transition-all duration-200 ease-in-out;
+        }
+        .btn-clicked {
+            @apply bg-green-500 border-green-400;
+            transform: scale(0.98);
+        }
+        .card {
+            @apply bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 h-full;
+        }
+        th { @apply px-4 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider; }
+        td { @apply px-4 py-4 whitespace-nowrap text-sm text-gray-200; }
+        .highlight { @apply text-indigo-400 font-semibold; }
+        .profit-highlight { @apply text-green-400 font-semibold; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-8 space-y-16">
+
+    <!-- Simple Position Size Calculator -->
+    <div class="w-full">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="card">
+                <h1 class="text-2xl font-bold text-center mb-6">S&P 500 Position Size Calculator</h1>
+                <div id="error-message-simple" class="hidden bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-sm"></div>
+                <div class="space-y-4">
+                     <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="simpleEntry" class="input-label">Entry Price</label>
+                            <input type="number" id="simpleEntry" class="input-field" placeholder="e.g., 6000">
+                        </div>
+                        <div>
+                            <label for="simpleStop" class="input-label">Stop Loss</label>
+                            <input type="number" id="simpleStop" class="input-field" placeholder="e.g., 5980">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="simpleRisk" class="input-label">Total Risk Amount ($)</label>
+                        <input type="number" id="simpleRisk" class="input-field" value="1000">
+                    </div>
+                     <div>
+                        <label class="input-label">Contract</label>
+                        <ul class="grid w-full grid-cols-2 gap-4">
+                            <li>
+                                <input type="radio" id="simple_es" name="simple_contract" value="ES" class="hidden peer" checked>
+                                <label for="simple_es" class="flex items-center justify-center w-full p-3 text-gray-200 bg-gray-700 border-2 border-gray-600 rounded-lg cursor-pointer hover:text-white hover:bg-gray-600 transition peer-checked:bg-indigo-600 peer-checked:border-indigo-500 peer-checked:text-white"><div class="block w-full text-center font-semibold">ES</div></label>
+                            </li>
+                            <li>
+                                <input type="radio" id="simple_mes" name="simple_contract" value="MES" class="hidden peer">
+                                <label for="simple_mes" class="flex items-center justify-center w-full p-3 text-gray-200 bg-gray-700 border-2 border-gray-600 rounded-lg cursor-pointer hover:text-white hover:bg-gray-600 transition peer-checked:bg-indigo-600 peer-checked:border-indigo-500 peer-checked:text-white"><div class="block w-full text-center font-semibold">MES</div></label>
+                            </li>
+                        </ul>
+                    </div>
+                    <button id="calculateBtnSimple" class="btn-primary !mt-6">Calculate Position Size</button>
+                </div>
+            </div>
+            <div id="simpleResultsContainer" class="card hidden">
+                 <h2 class="text-xl font-bold text-center mb-4">Position Size Result</h2>
+                 <div id="simpleOutput" class="flex flex-col items-center justify-center h-full">
+                    <p class="text-center text-lg text-gray-300">Required Position Size:</p>
+                    <p id="simplePositionSize" class="text-center text-5xl font-bold text-white mt-4"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Separator -->
+    <div class="w-full max-w-6xl border-t border-gray-700"></div>
+
+    <!-- Fib Risk Calculator -->
+    <div class="w-full">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="card">
+                <h1 class="text-2xl font-bold text-center mb-6">S&P 500 Fib Risk Calculator</h1>
+                <div id="error-message-fib" class="hidden bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4 text-sm"></div>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="swingLow" class="input-label">Swing Low / Support</label>
+                            <input type="number" id="swingLow" class="input-field" value="5928">
+                        </div>
+                        <div>
+                            <label for="swingHigh" class="input-label">Swing High / Resistance</label>
+                            <input type="number" id="swingHigh" class="input-field" value="6074">
+                        </div>
+                    </div>
+                     <div>
+                        <label for="totalRiskFib" class="input-label">Total Risk Amount ($)</label>
+                        <input type="number" id="totalRiskFib" class="input-field" value="10000">
+                    </div>
+                    <div>
+                        <label class="input-label">Contract</label>
+                        <ul class="grid w-full grid-cols-2 gap-4">
+                            <li>
+                                <input type="radio" id="es" name="contract" value="ES" class="hidden peer" checked>
+                                <label for="es" class="flex items-center justify-center w-full p-3 text-gray-200 bg-gray-700 border-2 border-gray-600 rounded-lg cursor-pointer hover:text-white hover:bg-gray-600 transition peer-checked:bg-indigo-600 peer-checked:border-indigo-500 peer-checked:text-white"><div class="block w-full text-center font-semibold">ES</div></label>
+                            </li>
+                            <li>
+                                <input type="radio" id="mes" name="contract" value="MES" class="hidden peer">
+                                <label for="mes" class="flex items-center justify-center w-full p-3 text-gray-200 bg-gray-700 border-2 border-gray-600 rounded-lg cursor-pointer hover:text-white hover:bg-gray-600 transition peer-checked:bg-indigo-600 peer-checked:border-indigo-500 peer-checked:text-white"><div class="block w-full text-center font-semibold">MES</div></label>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <label class="input-label">Trade Direction</label>
+                        <ul class="grid w-full grid-cols-2 gap-4">
+                            <li>
+                                <input type="radio" id="long" name="direction" value="long" class="hidden peer" checked>
+                                <label for="long" class="flex items-center justify-center w-full p-3 text-gray-200 bg-gray-700 border-2 border-gray-600 rounded-lg cursor-pointer hover:text-white hover:bg-gray-600 transition peer-checked:bg-green-600 peer-checked:border-green-500 peer-checked:text-white"><div class="block w-full text-center font-semibold">Long</div></label>
+                            </li>
+                            <li>
+                                <input type="radio" id="short" name="direction" value="short" class="hidden peer">
+                                <label for="short" class="flex items-center justify-center w-full p-3 text-gray-200 bg-gray-700 border-2 border-gray-600 rounded-lg cursor-pointer hover:text-white hover:bg-gray-600 transition peer-checked:bg-red-600 peer-checked:border-red-500 peer-checked:text-white"><div class="block w-full text-center font-semibold">Short</div></label>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <label for="strategy" class="input-label">Risk Allocation Strategy</label>
+                        <select id="strategy" class="input-field">
+                            <option value="equal">Equal Risk (33.3% each)</option>
+                            <option value="conservative">Conservative (20% / 40% / 40%)</option>
+                            <option value="aggressive">Aggressive (50% / 30% / 20%)</option>
+                        </select>
+                    </div>
+                    <button id="calculateBtnFib" class="btn-primary !mt-6">Calculate Fib Plan</button>
+                </div>
+            </div>
+            <div id="resultsContainerFib" class="card hidden">
+                <div class="space-y-8">
+                    <div>
+                        <h2 class="text-xl font-bold text-center mb-4">Entry Plan</h2>
+                        <div id="entryTableFib" class="overflow-x-auto"></div>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-center mb-4">Take-Profit Plan</h2>
+                        <div id="profitTableFib" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+                <div id="summaryFib" class="mt-8 pt-6 border-t border-gray-700"></div>
+                <div id="strategyExplanationFib" class="mt-4 p-4 bg-gray-900/50 rounded-lg text-sm text-gray-400"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Constants ---
+        const CONTRACT_SPECS = {
+            ES: { pointValue: 50, tickSize: 0.25 },
+            MES: { pointValue: 5, tickSize: 0.25 }
+        };
+        const FIB_LEVELS = [0.5, 0.618, 0.786];
+        const FIB_EXTENSIONS = [1.272, 1.618, 2.0];
+        const STRATEGIES = {
+            equal: [1/3, 1/3, 1/3],
+            conservative: [0.2, 0.4, 0.4],
+            aggressive: [0.5, 0.3, 0.2]
+        };
+
+        // --- Fib Calculator Elements ---
+        const swingLowEl = document.getElementById('swingLow');
+        const swingHighEl = document.getElementById('swingHigh');
+        const totalRiskFibEl = document.getElementById('totalRiskFib');
+        const contractFibEl = () => document.querySelector('input[name="contract"]:checked');
+        const directionFibEl = () => document.querySelector('input[name="direction"]:checked');
+        const strategyFibEl = document.getElementById('strategy');
+        const calculateBtnFib = document.getElementById('calculateBtnFib');
+        const resultsContainerFib = document.getElementById('resultsContainerFib');
+        const entryTableFibEl = document.getElementById('entryTableFib');
+        const profitTableFibEl = document.getElementById('profitTableFib');
+        const summaryFibEl = document.getElementById('summaryFib');
+        const strategyExplanationFibEl = document.getElementById('strategyExplanationFib');
+        const errorMessageFibEl = document.getElementById('error-message-fib');
+
+        // --- Simple Calculator Elements ---
+        const simpleEntryEl = document.getElementById('simpleEntry');
+        const simpleStopEl = document.getElementById('simpleStop');
+        const simpleRiskEl = document.getElementById('simpleRisk');
+        const simpleContractEl = () => document.querySelector('input[name="simple_contract"]:checked');
+        const calculateBtnSimple = document.getElementById('calculateBtnSimple');
+        const simpleResultsContainerEl = document.getElementById('simpleResultsContainer');
+        const simplePositionSizeEl = document.getElementById('simplePositionSize');
+        const errorMessageSimpleEl = document.getElementById('error-message-simple');
+
+
+        // --- Event Listeners ---
+        calculateBtnFib.addEventListener('click', calculateAndDisplayFib);
+        calculateBtnSimple.addEventListener('click', calculateAndDisplaySimple);
+
+        // --- Helper Function ---
+        function roundToTick(price, tickSize) {
+            return Math.round(price / tickSize) * tickSize;
+        }
+
+        // --- Fib Calculator Logic ---
+        function calculateAndDisplayFib() {
+            calculateBtnFib.classList.add('btn-clicked');
+            setTimeout(() => { calculateBtnFib.classList.remove('btn-clicked'); }, 250);
+            errorMessageFibEl.classList.add('hidden');
+
+            const low = parseFloat(swingLowEl.value);
+            const high = parseFloat(swingHighEl.value);
+            const totalRisk = parseFloat(totalRiskFibEl.value);
+
+            if (isNaN(low) || isNaN(high) || isNaN(totalRisk) || low >= high || totalRisk <= 0) {
+                errorMessageFibEl.textContent = "Please enter valid inputs. Swing High must be greater than Swing Low, and Risk must be positive.";
+                errorMessageFibEl.classList.remove('hidden');
+                resultsContainerFib.classList.add('hidden');
+                return;
+            }
+            
+            const selectedContract = contractFibEl().value;
+            const contractSpec = CONTRACT_SPECS[selectedContract];
+            const direction = directionFibEl().value;
+            const strategy = STRATEGIES[strategyFibEl.value];
+            
+            const range = high - low;
+            const stopLoss = direction === 'long' ? low : high;
+            let entries = [], totalContracts = 0, totalWeightedPrice = 0, totalActualRisk = 0;
+            
+            FIB_LEVELS.forEach((fib, index) => {
+                const entryPrice = roundToTick(direction === 'long' ? high - (range * fib) : low + (range * fib), contractSpec.tickSize);
+                const riskInPoints = Math.abs(entryPrice - stopLoss);
+                const riskPerContract = riskInPoints * contractSpec.pointValue;
+                const allocatedRisk = totalRisk * strategy[index];
+                const positionSize = (riskPerContract > 0) ? allocatedRisk / riskPerContract : 0;
+                totalContracts += positionSize;
+                totalWeightedPrice += positionSize * entryPrice;
+                totalActualRisk += positionSize * riskPerContract;
+                entries.push({ level: `${(fib * 100).toFixed(1)}%`, entryPrice: entryPrice.toFixed(2), positionSize: positionSize.toFixed(2) });
+            });
+
+            const averageEntryPrice = totalContracts > 0 ? (totalWeightedPrice / totalContracts) : 0;
+            let profitTargets = [];
+            if (averageEntryPrice > 0) {
+                FIB_EXTENSIONS.forEach((ext, index) => {
+                    const targetPrice = roundToTick(direction === 'long' ? low + (range * ext) : high - (range * ext), contractSpec.tickSize);
+                    const profitInPoints = Math.abs(targetPrice - averageEntryPrice);
+                    const profitPerContract = profitInPoints * contractSpec.pointValue;
+                    profitTargets.push({ level: `Target ${index + 1} (${ext.toFixed(3)})`, targetPrice: targetPrice.toFixed(2), profitPerContract: profitPerContract.toLocaleString(undefined, {style: 'currency', currency: 'USD'}) });
+                });
+            }
+            renderEntryTable(entries, stopLoss.toFixed(2));
+            renderProfitTable(profitTargets, totalContracts);
+            renderSummary(totalContracts, averageEntryPrice.toFixed(2), totalActualRisk, selectedContract);
+            renderStrategyExplanation();
+            resultsContainerFib.classList.remove('hidden');
+        }
+        
+        function renderEntryTable(data, stopLoss) {
+            let tableHTML = `<table class="min-w-full divide-y divide-gray-700"><thead class="bg-gray-800"><tr><th>Fib Level</th><th>Entry Price</th><th>Stop Loss</th><th>Position Size</th></tr></thead><tbody class="bg-gray-800/50 divide-y divide-gray-700">`;
+            data.forEach(row => { tableHTML += `<tr><td>${row.level}</td><td><span class="highlight">${row.entryPrice}</span></td><td>${stopLoss}</td><td><span class="font-bold text-lg text-white">${row.positionSize}</span></td></tr>`; });
+            tableHTML += `</tbody></table>`;
+            entryTableFibEl.innerHTML = tableHTML;
+        }
+
+        function renderProfitTable(data, totalContracts) {
+             let tableHTML = `<table class="min-w-full divide-y divide-gray-700"><thead class="bg-gray-800"><tr><th>Target Level</th><th>Target Price</th><th>Contracts to Sell</th><th>Profit/Contract</th></tr></thead><tbody class="bg-gray-800/50 divide-y divide-gray-700">`;
+            if(data.length > 0) {
+                 const contractsPerTarget = (totalContracts / 3).toFixed(2);
+                 data.forEach(row => { tableHTML += `<tr><td>${row.level}</td><td><span class="profit-highlight">${row.targetPrice}</span></td><td>${contractsPerTarget}</td><td>${row.profitPerContract}</td></tr>`; });
+            } else { tableHTML += `<tr><td colspan="4" class="text-center py-4">Enter valid inputs to calculate profit targets.</td></tr>` }
+            tableHTML += `</tbody></table>`;
+            profitTableFibEl.innerHTML = tableHTML;
+        }
+
+        function renderSummary(totalContracts, avgPrice, totalRisk, contract) {
+            summaryFibEl.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center"><div><p class="text-sm text-gray-400">Total Size</p><p class="text-2xl font-bold text-white">${totalContracts.toFixed(2)}</p><p class="text-xs text-gray-500">${contract} contracts</p></div><div><p class="text-sm text-gray-400">Average Entry Price</p><p class="text-2xl font-bold text-white">${avgPrice === '0.00' ? 'N/A' : avgPrice}</p><p class="text-xs text-gray-500">(if all levels filled)</p></div><div><p class="text-sm text-gray-400">Total Actual Risk</p><p class="text-2xl font-bold text-white">$${totalRisk.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p><p class="text-xs text-gray-500">(target: $${parseFloat(totalRiskFibEl.value).toLocaleString()})</p></div></div>`;
+        }
+
+        function renderStrategyExplanation() {
+            const strategyKey = strategyFibEl.value;
+            let explanation = '';
+            if (strategyKey === 'aggressive') { explanation = `<strong>Aggressive Strategy:</strong> You are front-loading your risk (50% on the first level). This is effective if you expect a shallow pullback...`; } 
+            else if (strategyKey === 'conservative') { explanation = `<strong>Conservative Strategy:</strong> You are back-loading your risk (40% on the two deeper levels)...`; } 
+            else { explanation = `<strong>Equal Risk Strategy:</strong> Your risk is evenly distributed across all three potential entry points...`; }
+            strategyExplanationFibEl.innerHTML = explanation;
+        }
+
+        // --- Simple Calculator Logic ---
+        function calculateAndDisplaySimple() {
+            calculateBtnSimple.classList.add('btn-clicked');
+            setTimeout(() => { calculateBtnSimple.classList.remove('btn-clicked'); }, 250);
+            errorMessageSimpleEl.classList.add('hidden');
+            
+            const entry = parseFloat(simpleEntryEl.value);
+            const stop = parseFloat(simpleStopEl.value);
+            const totalRisk = parseFloat(simpleRiskEl.value);
+            
+            if (isNaN(entry) || isNaN(stop) || isNaN(totalRisk) || totalRisk <= 0 || entry === stop) {
+                errorMessageSimpleEl.textContent = "Please enter valid and different Entry, Stop, and a positive Risk amount.";
+                errorMessageSimpleEl.classList.remove('hidden');
+                simpleResultsContainerEl.classList.add('hidden');
+                return;
+            }
+
+            const selectedContract = simpleContractEl().value;
+            const contractSpec = CONTRACT_SPECS[selectedContract];
+            const riskInPoints = Math.abs(entry - stop);
+            const riskPerContract = riskInPoints * contractSpec.pointValue;
+            
+            if (riskPerContract <= 0) {
+                 errorMessageSimpleEl.textContent = "Risk per contract is zero. Entry and Stop cannot be the same.";
+                 errorMessageSimpleEl.classList.remove('hidden');
+                 simpleResultsContainerEl.classList.add('hidden');
+                 return;
+            }
+
+            const positionSize = totalRisk / riskPerContract;
+
+            simplePositionSizeEl.textContent = `${positionSize.toFixed(2)} ${selectedContract} Contracts`;
+            simpleResultsContainerEl.classList.remove('hidden');
+        }
+
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            calculateAndDisplayFib();
+        });
+    </script>
+</body>
+</html>
