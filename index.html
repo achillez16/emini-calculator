@@ -160,10 +160,6 @@
                         <h2 class="text-xl font-bold text-center mb-4">Entry Plan</h2>
                         <div id="entryTableFib" class="overflow-x-auto"></div>
                     </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-center mb-4">Take-Profit Plan</h2>
-                        <div id="profitTableFib" class="overflow-x-auto"></div>
-                    </div>
                 </div>
                 <div id="summaryFib" class="mt-8 pt-6 border-t border-gray-700"></div>
                 <div id="strategyExplanationFib" class="mt-4 p-4 bg-gray-900/50 rounded-lg text-sm text-gray-400"></div>
@@ -178,7 +174,6 @@
             MES: { pointValue: 5, tickSize: 0.25 }
         };
         const FIB_LEVELS = [0.5, 0.618, 0.786];
-        const FIB_EXTENSIONS = [1.272, 1.618, 2.0];
         const STRATEGIES = {
             equal: [1/3, 1/3, 1/3],
             conservative: [0.2, 0.4, 0.4],
@@ -195,7 +190,6 @@
         const calculateBtnFib = document.getElementById('calculateBtnFib');
         const resultsContainerFib = document.getElementById('resultsContainerFib');
         const entryTableFibEl = document.getElementById('entryTableFib');
-        const profitTableFibEl = document.getElementById('profitTableFib');
         const summaryFibEl = document.getElementById('summaryFib');
         const strategyExplanationFibEl = document.getElementById('strategyExplanationFib');
         const errorMessageFibEl = document.getElementById('error-message-fib');
@@ -259,17 +253,8 @@
             });
 
             const averageEntryPrice = totalContracts > 0 ? (totalWeightedPrice / totalContracts) : 0;
-            let profitTargets = [];
-            if (averageEntryPrice > 0) {
-                FIB_EXTENSIONS.forEach((ext, index) => {
-                    const targetPrice = roundToTick(direction === 'long' ? low + (range * ext) : high - (range * ext), contractSpec.tickSize);
-                    const profitInPoints = Math.abs(targetPrice - averageEntryPrice);
-                    const profitPerContract = profitInPoints * contractSpec.pointValue;
-                    profitTargets.push({ level: `Target ${index + 1} (${ext.toFixed(3)})`, targetPrice: targetPrice.toFixed(2), profitPerContract: profitPerContract.toLocaleString(undefined, {style: 'currency', currency: 'USD'}) });
-                });
-            }
+            
             renderEntryTable(entries, stopLoss.toFixed(2));
-            renderProfitTable(profitTargets, totalContracts);
             renderSummary(totalContracts, averageEntryPrice.toFixed(2), totalActualRisk, selectedContract);
             renderStrategyExplanation();
             resultsContainerFib.classList.remove('hidden');
@@ -280,16 +265,6 @@
             data.forEach(row => { tableHTML += `<tr><td>${row.level}</td><td><span class="highlight">${row.entryPrice}</span></td><td>${stopLoss}</td><td><span class="font-bold text-lg text-white">${row.positionSize}</span></td></tr>`; });
             tableHTML += `</tbody></table>`;
             entryTableFibEl.innerHTML = tableHTML;
-        }
-
-        function renderProfitTable(data, totalContracts) {
-             let tableHTML = `<table class="min-w-full divide-y divide-gray-700"><thead class="bg-gray-800"><tr><th>Target Level</th><th>Target Price</th><th>Contracts to Sell</th><th>Profit/Contract</th></tr></thead><tbody class="bg-gray-800/50 divide-y divide-gray-700">`;
-            if(data.length > 0) {
-                 const contractsPerTarget = (totalContracts / 3).toFixed(2);
-                 data.forEach(row => { tableHTML += `<tr><td>${row.level}</td><td><span class="profit-highlight">${row.targetPrice}</span></td><td>${contractsPerTarget}</td><td>${row.profitPerContract}</td></tr>`; });
-            } else { tableHTML += `<tr><td colspan="4" class="text-center py-4">Enter valid inputs to calculate profit targets.</td></tr>` }
-            tableHTML += `</tbody></table>`;
-            profitTableFibEl.innerHTML = tableHTML;
         }
 
         function renderSummary(totalContracts, avgPrice, totalRisk, contract) {
